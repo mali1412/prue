@@ -7,7 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 import com.invoice.api.dto.ApiResponse;
 import com.invoice.api.dto.DtoCartItemIn;
@@ -21,6 +24,7 @@ import com.invoice.exception.ApiException;
 import com.invoice.exception.DBAccessException;
 
 @Service
+@Transactional
 public class SvcCartItemImp implements SvcCartItem {
     
     @Autowired
@@ -38,17 +42,23 @@ public class SvcCartItemImp implements SvcCartItem {
     @Override
     public ApiResponse addItem(DtoCartItemIn dto) {
         try {
-            // 1. Consultar producto al microservicio
-            DtoProduct product = restTemplate.getForObject(
-                PRODUCT_URL + dto.getGtin(), DtoProduct.class
-            );
+            DtoProduct product;
+            try {
+                product = restTemplate.getForObject(
+                    PRODUCT_URL + dto.getGtin(), DtoProduct.class
+                );
+            } catch (HttpClientErrorException | HttpServerErrorException e) {
+                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, 
+                    "El servicio de productos no está disponible");
+            } catch (Exception e) {
+                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, 
+                    "Error al consultar el servicio de productos");
+            }
 
-            // 2. Validar que exista
             if (product == null) {
                 throw new ApiException(HttpStatus.NOT_FOUND, "El producto no existe");
             }
 
-            // 3. Validar stock
             if (product.getStock() < dto.getQuantity()) {
                 throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Stock insuficiente para el producto " + product.getProduct());
@@ -56,13 +66,11 @@ public class SvcCartItemImp implements SvcCartItem {
 
             Integer user_id = jwtDecoder.getUserId();
 
-            // 4. Si ya existe en el carrito, actualizar cantidad
             CartItem existing = repo.findByUserIdAndGtin(user_id, dto.getGtin());
             if (existing != null) {
-                existing.setQuantity(dto.getQuantity());
+                existing.setQuantity(existing.getQuantity() + dto.getQuantity());
                 repo.save(existing);
             } else {
-                // 5. Crear nuevo item
                 CartItem item = new CartItem();
                 item.setUser_id(user_id);
                 item.setGtin(dto.getGtin());
@@ -86,10 +94,15 @@ public class SvcCartItemImp implements SvcCartItem {
             List<DtoProduct> products = new ArrayList<>();
 
             for (CartItem item : items) {
-                DtoProduct product = restTemplate.getForObject(
-                    PRODUCT_URL + item.getGtin(), DtoProduct.class
-                );
-                products.add(product);
+                try {
+                    DtoProduct product = restTemplate.getForObject(
+                        PRODUCT_URL + item.getGtin(), DtoProduct.class
+                    );
+                    products.add(product);
+                } catch (Exception e) {
+                    throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, 
+                        "Error al consultar el servicio de productos");
+                }
             }
 
             return mapper.toDtoList(items, products);
