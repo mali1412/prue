@@ -3,6 +3,8 @@ package com.invoice.api.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -11,14 +13,17 @@ import jakarta.persistence.Table;
 public class InvoiceItem {
 	
 	@Id
-	private String invoice_item_id;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer invoice_item_id;
 	
 	@JsonIgnore
-	private String invoice_id;
+	private Integer invoice_id;
 	
 	private String gtin;
 
 	private Integer quantity;
+
+	private Integer status;
 
 	private Double unit_price;
 
@@ -32,8 +37,8 @@ public class InvoiceItem {
 		
 	}
 
-	public InvoiceItem(String invoice_item_id, String invoice_id, String gtin, Integer quantity, Double unit_price,
-			Double subtotal, Double taxes, Double total) {
+	public InvoiceItem(Integer invoice_item_id, Integer invoice_id, String gtin, Integer quantity, Double unit_price,
+			Double subtotal, Double taxes, Double total, Integer status) {
 		super();
 		this.invoice_item_id = invoice_item_id;
 		this.invoice_id = invoice_id;
@@ -43,21 +48,23 @@ public class InvoiceItem {
 		this.subtotal = subtotal;
 		this.taxes = taxes;
 		this.total = total;
+		this.status = status;
 	}
 
-	public String getInvoice_item_id() {
+	public Integer getInvoice_item_id() {
 		return invoice_item_id;
 	}
 
-	public void setInvoice_item_id(String invoice_item_id) {
+	public void setInvoice_item_id(Integer invoice_item_id) {
 		this.invoice_item_id = invoice_item_id;
 	}
 
-	public String getInvoice_id() {
+	public Integer getInvoice_id() {
 		return invoice_id;
 	}
 
-	public void setInvoice_id(String invoice_id) {
+
+	public void setInvoice_id(Integer invoice_id) {
 		this.invoice_id = invoice_id;
 	}
 
@@ -107,5 +114,13 @@ public class InvoiceItem {
 
 	public void setTotal(Double total) {
 		this.total = total;
+	}
+
+	public Integer getStatus() {
+		return status;
+	}
+
+	public void setStatus(Integer status) {
+		this.status = status;
 	}
 }

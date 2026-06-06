@@ -5,6 +5,8 @@ import java.util.List;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
@@ -15,7 +17,8 @@ import jakarta.persistence.Table;
 public class Invoice {
 	
 	@Id
-	private String invoice_id;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer invoice_id;
 
 	private Integer user_id;
 	
@@ -27,6 +30,8 @@ public class Invoice {
 
 	private Double total;
 
+	private Integer status;
+
 	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "invoice_id", referencedColumnName = "invoice_id")
 	private List<InvoiceItem> items;
@@ -35,8 +40,8 @@ public class Invoice {
 		
 	}
 
-	public Invoice(String invoice_id, Integer user_id, String created_at, Double subtotal, Double taxes, Double total,
-			List<InvoiceItem> items) {
+	public Invoice(Integer invoice_id, Integer user_id, String created_at, Double subtotal, Double taxes,
+			Double total, List<InvoiceItem> items, Integer status) {
 		super();
 		this.invoice_id = invoice_id;
 		this.user_id = user_id;
@@ -45,13 +50,16 @@ public class Invoice {
 		this.taxes = taxes;
 		this.total = total;
 		this.items = items;
+		this.status = status;
 	}
 
-	public String getInvoice_id() {
+	
+
+	public Integer getInvoice_id() {
 		return invoice_id;
 	}
 
-	public void setInvoice_id(String invoice_id) {
+	public void setInvoice_id(Integer invoice_id) {
 		this.invoice_id = invoice_id;
 	}
 
@@ -101,6 +109,14 @@ public class Invoice {
 
 	public void setItems(List<InvoiceItem> items) {
 		this.items = items;
+	}
+
+	public Integer getStatus() {
+		return status;
+	}
+
+	public void setStatus(Integer status) {
+		this.status = status;
 	}
 
 	
