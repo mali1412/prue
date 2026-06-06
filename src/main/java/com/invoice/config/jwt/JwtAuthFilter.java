@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,29 +38,33 @@ public class JwtAuthFilter extends OncePerRequestFilter{
             return;
         }
 
-        String token = authHeader.substring(7);
-        String username = jwtUtil.extractUsername(token);
-        List<HashMap<String, String>> permisos = jwtUtil.extractPermisos(token);
-        
-        Integer user_id = jwtUtil.extractUserId(token);
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("id", user_id);
-        
-        List<String> permisosList = permisos.stream().map(i -> i.get("authority")).toList();
-        
-
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = User.withUsername(username)
-            		.password("")
-            		.authorities(permisosList.toArray(new String[0]))
-                    .build();
-
-            UsernamePasswordAuthenticationToken authToken = 
-                new UsernamePasswordAuthenticationToken(userDetails, payload, userDetails.getAuthorities());
+        try {
+            String token = authHeader.substring(7);
+            String username = jwtUtil.extractUsername(token);
+            List<HashMap<String, String>> permisos = jwtUtil.extractPermisos(token);
             
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-        }
+            Integer user_id = jwtUtil.extractUserId(token);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("id", user_id);
+            
+            List<String> permisosList = permisos.stream().map(i -> i.get("authority")).toList();
+            
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = User.withUsername(username)
+                		.password("")
+                		.authorities(permisosList.toArray(new String[0]))
+                        .build();
 
-        chain.doFilter(request, response);
+                UsernamePasswordAuthenticationToken authToken = 
+                    new UsernamePasswordAuthenticationToken(userDetails, payload, userDetails.getAuthorities());
+                
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+
+            chain.doFilter(request, response);
+        } catch (JwtException | IllegalArgumentException e) {
+            // Token inválido o expirado, continúa sin autenticación
+            chain.doFilter(request, response);
+        }
     }
 }
